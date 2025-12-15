@@ -1,0 +1,97 @@
+services:
+  # ----------------------------------
+  # UI/Frontend Service (Next.js)
+  # ----------------------------------
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lumiere_ui
+    ports: ["3000:3000"]
+    env_file: ./.env
+    volumes:
+      - ./frontend:/app
+      # Fix: Hide local node_modules to ensure the built version is used.
+      - /app/node_modules
+      # CRITICAL Fix: Hide local .next directory to use the production build
+      # generated inside the container during the Docker build process.
+      - /app/.next
+    depends_on:
+      api:
+        condition: service_started
+
+  # ----------------------------------
+  # API/Backend Service (Django/Gunicorn)
+  # ----------------------------------
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lumiere_api
+    ports: ["8000:8000"]
+    env_file: ./.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      # Ensure DB and Redis are fully available before the API starts
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # ----------------------------------
+  # Database Service (PostgreSQL)
+  # ----------------------------------
+  db:
+    image: postgres:14-alpine
+    container_name: lumiere_db
+    # Using 5435 for the host port to avoid conflicts with other local PostgreSQL server (5432 is used internally)
+    ports: ["5435:5432"]
+    env_file: ./.env
+    # CRITICAL FIX: Ensure environment variables match the names used in the .env file
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  # ----------------------------------
+  # Redis Service (Caching/Tasks)
+  # ----------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: lumiere_redis
+    ports: ["6379:6379"]
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # ----------------------------------
+  # CLI Service (For Management Commands/Migrations)
+  # ----------------------------------
+  cli:
+    build:
+      context: ./backend # Use the same Dockerfile as the API
+    container_name: lumiere_cli
+    profiles:
+      - cli # This service only runs when explicitly requested (e.g., 'docker compose --profile cli up')
+    env_file: ./.env
+    volumes:
+      - ./backend:/app
+    # **THIS IS THE CRITICAL LINE:**
+    # It pre-pends 'poetry run python manage.py' to any command you provide.
+    entrypoint: poetry run python3 manage.py
+    depends_on:
+      db:
+        condition: service_healthy
+
+# Docker Volumes for persistent storage outside the container lifespan
+volumes:
+  postgres_data:
+  redis_data:
