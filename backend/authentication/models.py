@@ -49,21 +49,11 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True, null = True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    has_news_sub = models.BooleanField(default=False)
-    news_sub_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
-    news_sub_exp = models.DateTimeField()
-    has_trading_sub = models.BooleanField(default=False)
-    trading_sub_exp = models.DateTimeField()
-    trader_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
-
-    class Meta:
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
     
 
     def __str__(self):
@@ -92,4 +82,17 @@ class User(AbstractUser):
     
    
 
-
+# class UserSubcriptionSetting(models.Model):
+    #user = models.OneToOneField(User, on_delete=models.CASCADE)
+    #has_news_sub = models.BooleanField(default=False)
+    #news_sub_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    #news_sub_exp = models.DateTimeField()
+    #has_trading_sub = models.BooleanField(default=False)
+    #trading_sub_exp = models.DateTimeField()
+    #trader_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    # subsciption_type = models.CharField()
+    # is_subsciption_active = models.CharField()
+    # sub_exp_date = models.DateTimeField()
+    # sub_resinstate_date  models.DateTimeField()
+    # last_sub_date = models.DateTimeField()
+    # prev_sub_type = models.DateTimeField()

@@ -2,7 +2,7 @@ Environment Setup
 
 # Start and build Services:
 
-every service is prefixed with 'lumiere' in Dcker
+every service is prefixed with 'lumiere' in Docker
 
 (api, ui, db, redis)
 
@@ -35,3 +35,5 @@ docker compose run cli makemigrations
 # apply all pending migrations
 
 docker compose run --rm cli miograte
+
+# Overview of repo structure
