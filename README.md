@@ -17,11 +17,11 @@ Infrastructure: Docker, Nginx, Gunicorn
 
 ## Dependency Management
 
-The project uses poetry instead of a requirements.txt for tighter dependancy management.
+The project uses poetry instead of a requirements.txt for tighter dependancy management
 
 Local Setup:
--make sure poetry is installed
--Install dependencies: poetry install
+1. Ensure poetry is installed
+2. Install dependencies: poetry install
 
 To add new dependencies:
 poetry add ["dependency"]
@@ -33,9 +33,9 @@ poetry add ["dependency"]
 
 1. clone the repository
 2. build and launch:
-   docker compose up --build
+   docker compose up -d  --build
 
 to run a command:
 docker compose run cli
 
-# Overview of repo structure
+# Overview of repo structure (updating...)
