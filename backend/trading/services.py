@@ -10,7 +10,7 @@ from decimal import Decimal
 
 def recalculate_metrics(account):
         """calculates trade metrics for a trading account, every time a trade is saved
-           UPdates the account metrics model and trading account balance
+           Updates the account metrics model and trading account balance
         """
         trades = account.trades.all()
         if not trades.exists():
@@ -23,29 +23,30 @@ def recalculate_metrics(account):
             metrics.winning_trades = 0
             metrics.losing_trades = 0
             metrics.breakeven_trades = 0
+            
+        else:
+            stats =  trades.aggregate(
+                total_pnl = Coalesce(Sum('realized_pnl'), Decimal('0.00')),
+                count  = Count('id'),
+                avg_win = Coalesce(Avg('realized_pnl', filter = Q(realized_pnl__gt = 0)), Decimal('0.00')),
+                avg_loss = Coalesce(Avg('realized_pnl', filter= Q(realized_pnl__lt = 0)), Decimal('0.00')),
+                total_lots = Coalesce(Sum('lots'), 0),
+                sum_wins = Coalesce(Sum('realized_pnl', filter = Q(realized_pnl__gt = 0)), Decimal('0.00')),
+                sum_losses = Coalesce(Sum('realized_pnl', filter = Q(realized_pnl__lt = 0)), Decimal('0.00')),
+                winning_trades = Count('id', filter = Q(realized_pnl__gt=0)),
+                losing_trades = Count('id', filter = Q(realized_pnl__lt=0)),
+                breakeven_trades = Count('id', filter = Q(realized_pnl = 0)),
+            )
 
-        stats =  trades.aggregate(
-            total_pnl = Coalesce(Sum('realized_pnl'), Decimal('0.00')),
-            count  = Count('id'),
-            avg_win = Coalesce(Avg('realized_pnl', filter = Q(realized_pnl__gt = 0)), Decimal('0.00')),
-            avg_loss = Coalesce(Avg('realized_pnl', filter= Q(realized_pnl__lt = 0)), Decimal('0.00')),
-            total_lots = Coalesce(Sum('lots'), 0),
-            sum_wins = Coalesce(Sum('realized_pnl', filter = Q(realized_pnl__gt = 0)), Decimal('0.00')),
-            sum_losses = Coalesce(Sum('realized_pnl', filter = Q(realized_pnl__lt = 0)), Decimal('0.00')),
-            winning_trades = Count('id', filter = Q(realized_pnl__gt=0)),
-            losing_trades = Count('id', filter = Q(realized_pnl__lt=0)),
-            breakeven_trades = Count('id', filter = Q(realized_pnl = 0)),
-        )
-
-        metrics, _ = AccountMetrics.objects.get_or_create(account=account)
-        metrics.total_realized_pnl = stats['total_pnl'] 
-        metrics.total_trades = stats['count'] 
-        metrics.avg_win =  stats['avg_win'] 
-        metrics.avg_loss = stats['avg_loss'] 
-        metrics.lots_traded = stats['total_lots'] 
-        metrics.winning_trades = stats['winning_trades']
-        metrics.losing_trades = stats['losing_trades']
-        metrics.breakeven_trades = stats['breakeven_trades']
+            metrics, _ = AccountMetrics.objects.get_or_create(account=account)
+            metrics.total_realized_pnl = stats['total_pnl'] 
+            metrics.total_trades = stats['count'] 
+            metrics.avg_win =  stats['avg_win'] 
+            metrics.avg_loss = stats['avg_loss'] 
+            metrics.lots_traded = stats['total_lots'] 
+            metrics.winning_trades = stats['winning_trades']
+            metrics.losing_trades = stats['losing_trades']
+            metrics.breakeven_trades = stats['breakeven_trades']
 
         if metrics.total_trades > 0:
             metrics.win_rate = (stats['winning_trades']/metrics.total_trades) * 100
@@ -73,11 +74,12 @@ def get_calendar_trades(account, start, end):
          trades = account.trades.filter(created_at_range = (start, end))
     
     return (
-        trades.annotate(date=TruncDate('created_at')) # Converts Timestamp to Date
-        .values('date') # SQL: GROUP BY date
+        trades.annotate(date=TruncDate('created_at')) 
+        .values('date')
         .annotate(
-            trade_count=Count('id'), # Number of trades per day
-            daily_pnl=Sum('realized_pnl') # Sum of PnL per day
+            trade_count=Count('id'), 
+            daily_pnl=Sum('realized_pnl') 
         )
         .order_by('date')
     )
+

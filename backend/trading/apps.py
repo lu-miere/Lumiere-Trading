@@ -6,5 +6,5 @@ class TradingConfig(AppConfig):
     name = 'trading'
 
     def ready(self):
-        import backend.trading.signals
+        import trading.signals
         

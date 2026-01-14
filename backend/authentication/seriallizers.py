@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from backend.authentication.models import User, UserManager
-from core.security import hash_password, verify_password
+from authentication.models import User
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only = True)

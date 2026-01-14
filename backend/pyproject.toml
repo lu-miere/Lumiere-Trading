@@ -18,6 +18,7 @@ pydantic = "^2.12.3"
 djangorestframework-simplejwt = "^5.5.1"
 passlib = "^1.7.4"
 gunicorn = "^23.0.0"
+django-filter = "^25.2"
 
 
 [build-system]

@@ -1,104 +1,134 @@
 from django.db import models
 from django.conf import settings
 from .trading_models import Trade
+from ..mixins import TimeMixin, PermissionMixin
+from django.utils import timezone
+
 
 User = settings.AUTH_USER_MODEL
 
-class Saga (models.Model):
-    user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='own_sagas')
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    shared_with = models.ManyToManyField(User, through='SagaMembership', blank= True)
-    joined_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+class Comments(models.Model):
+      pass
+
+class PsychologyScore(models.Model):
+      pass
+
+class Journal(TimeMixin, models.Model):
+    user = models.ForeignKey(User, on_delete= models.CASCADE, related_name='journal')
+    date = models.DateField(default=timezone.now)
+    
+    comments = models.ManyToManyField(Comments, null = True, blank=True, related_name="jounral_comments")
+    pschology_rating = models.IntegerField(null=True, blank=True, help_text="rating of user's psychology")
+    discipline_rating = models.IntegerField(null=True, blank=True, help_text="rating of user's psychology")
 
     def __str__(self):
-            return f'{self.title}'
-
-class SagaMembership(models.Model):
-    "this class allows me to add custom pemissions to the shared_with field in sagas, on top of checking membership"
-    "Allows me to get shared files for one user or filter users w/wo/o their roles for a an saga types "
-
-    class ROLES(models.TextChoices): 
-        VIEWER = 'viewer', 'View-only'
-        EDITOR = 'editor', 'Can Edit'
-        ADMIN = 'admin', "Full Access"
-    
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    saga = models.ForeignKey(Saga, on_delete=models.CASCADE)
-    role = models.CharField(max_length=15, choices=ROLES.choices, default = ROLES.VIEWER)
+          return f"Journal: {self.date}"
 
     class Meta:
-        unique_together = ('user', 'saga')
+          unique_together = ['user', 'date']
+          verbose_name = 'journal'
+          ordering = 'date'
+          
+    @property
+    def get_day_pnl(self, start, end):
+          if start and end:
+            trades = Trade.objects.filter(user = self.user) 
+        
+   
 
-class Series(models.Model):
-    user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='own_series')
+
+
+class Saga (TimeMixin, PermissionMixin, models.Model):
+    user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='sagas')
     title = models.CharField(max_length=255)
     description = models.TextField()
+    
+    class Meta:
+                verbose_name = 'Saga'
+                verbose_name_plural = 'Sagas'
+
+
+class Series(TimeMixin, models.Model):
+    user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='series')
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    entry_date = models.DateField(default=timezone.now, null = True, blank= True, help_text='the date of the conatiner of related entries for a specificm date for a team account')
+
     sagas = models.ManyToManyField(Saga, blank= True, related_name= 'series' )
-    shared_with = models.ManyToManyField(User, through='SagaMembership', blank= True)
-    joined_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f'{self.title}'
+    class Meta:
+                verbose_name = 'Serie'
+                verbose_name_plural = 'Series'
+                
+                constraints = [
+          models.UniqueConstraint(
+                fields= ['user,']
+          )
+    ]
 
-
-class SeriesMembership(models.Model):
-    class ROLES(models.TextChoices):
-        VIEWER = 'viewer', "View-onlky"
-        EDITOR = 'editor', "Can Edit"
-        ADMIN = 'admin', "Full Access"
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    series = models.ForeignKey(Series, on_delete=models.CASCADE)
-    role = models.CharField(max_length=12, choices=ROLES.choices, default=ROLES.VIEWER)
-
-
-class Entry(models.Model):
+class Entry(TimeMixin, PermissionMixin, models.Model):
     "Single Table Based Inheritance model allows us to map different story notes to one model in the DB"
-    "journal, idea, fundamental"
+    "journal, idea, headline, econ rel"
 
     class EntryType(models.TextChoices):
         JOURNAL = "J", "Journal"
         IDEA =  "I", "Idea"
         NEWS = "N", "News"
+        ECON = "E", "Economic"
     
     class SessionType(models.TextChoices):
         NY = "NY", "New York"
-        TKYO =  "TYO", "Toyo"
+        TKYO =  "TKYO", "Tokyo"
         LON = "LON", "London"
+    
+    class PriorityLevel(models.IntegerChoices):
+          LOW = 1, 'Low'
+          MEDIUM = 2, 'Medium'
+          HIGH = 3, 'High'
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='own_entry')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='entries')
     entry_type = models.CharField(max_length=20, choices = EntryType.choices, default=EntryType.IDEA)
-    shared_with = models.ManyToManyField(User, through='EntryMembership', null= True, blank= True)
-    trades = models.ManyToManyField(Trade,  blank = True)
-    series = models.ManyToManyField(Series,  blank = True)
+    priority = models.IntegerField(max_length=1, choices=PriorityLevel.choices, default= PriorityLevel.LOW)
+    
+    # related to a user journal entry
+    jounral = models.OneToOneField(Journal)
+    # Related series and entry date to group entries by a user selected date
+    series = models.ManyToManyField(Series,  blank = True, related_name='entries')
+
     title = models.CharField(max_length=255, default='title')
     comments = models.TextField(null = True, blank=True)
 
-    # Journal
     symbol = models.CharField(max_length=12, default = 'symbol', null = True, blank= True)
     trading_session = models.CharField(choices = SessionType.choices, null = True, blank= True, verbose_name="Trading Session")
+
+    # Trading Journal
     entry_daily = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry Daily")
     entry_4HR = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 4H")
-    entry_2H = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 2H")
     entry_1H = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 1H")
     entry_30M = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 30M")
     entry_15M = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 15M")
     entry_5M = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 5M")
     entry_1M = models.CharField(max_length=300, null = True, blank= True, verbose_name="Entry 1M")
+    trades = models.ManyToManyField(Trade,  blank = True, related_name= 'entries')
+
 
     # News
-    headline_title = models.CharField(max_length=50, null = True, blank= True, verbose_name= 'Headline Title')
-    headline_url = models.CharField(max_length=100, null = True, blank= True, verbose_name= 'Headline Url')
+    headline_title = models.CharField(max_length=255, null = True, blank= True, verbose_name= 'Headline Title')
+    headline_url = models.URLField(max_length=500, null = True, blank= True, verbose_name= 'Headline Url')
     published_date = models.DateTimeField(verbose_name= 'Publish Date', null= True, blank= True)
-    source = models.CharField(max_length=30, null= True, blank= True)
+    source = models.CharField(max_length=255, null= True, blank= True)
     
     # General
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     extra_data = models.JSONField(default= dict, blank=True)
+
+    @property
+    def all_trades_for_day(self):
+          if not self.entry_date:
+                return Trade.objects.none()
+          return Trade.objects.filter(
+                account__user = self.user,
+                entered_time__date = self.entry_date
+          )
 
     def __str__(self):
         return f"{self.get_entry_type}  {self.title}"
@@ -106,25 +136,11 @@ class Entry(models.Model):
     @property
     def get_entry_type(self):
         return f'{self.entry_type}'
-
-class EntryMembership(models.Model):
-    "this class allows me to set meteadeta and not only test membership of an account that is listed under shared_with"
-    "Allows me to get shared files for a user or filter user w/w/o roles "
-   
-    class ROLES(models.TextChoices):
-        VIEWER = 'viewer', "View-only"
-        EDITOR = 'editor', "Can Edit"
-        ADMIN = 'admin', "Full Access"
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    entry = models.ForeignKey(Entry, on_delete=models.CASCADE)
-    role = models.CharField(max_length=12, choices= ROLES.choices, default=ROLES.VIEWER)
-    joined_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    
 
     class Meta:
-            unique_together = ('user', 'entry')
-
-
-
+                verbose_name = 'Entry'
+                verbose_name_plural = 'Entries'
+    
+ 
 
