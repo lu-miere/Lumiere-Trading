@@ -1,12 +1,12 @@
 # Lumiere Trading
 
 Trading application that allows users:
--to log trades and provide metrics based on given account trading history
--journal trades and view entries as a timweline
--search and save core fundamental data such as headline and economic releases
--stream prices
--perform technical analysis and log the analysis to the journal
--backtest algorithmic strategies (proprietary or use existing API?)
+1. to log trades and provide metrics based on given account trading history
+2. journal trades and view entries as a timweline
+3. search and save core fundamental data such as headline and economic releases
+4. stream prices
+5. perform technical analysis and log the analysis to the journal
+6. backtest algorithmic strategies (proprietary or use existing API?)
 
 ## Tech Stack (updating...)
 
