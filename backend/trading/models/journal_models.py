@@ -34,10 +34,6 @@ class Journal(TimeMixin, models.Model):
           if start and end:
             trades = Trade.objects.filter(user = self.user) 
         
-   
-
-
-
 class Saga (TimeMixin, PermissionMixin, models.Model):
     user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='sagas')
     title = models.CharField(max_length=255)
@@ -91,7 +87,7 @@ class Entry(TimeMixin, PermissionMixin, models.Model):
     priority = models.IntegerField(max_length=1, choices=PriorityLevel.choices, default= PriorityLevel.LOW)
     
     # related to a user journal entry
-    jounral = models.OneToOneField(Journal)
+    journal = models.OneToOneField(Journal)
     # Related series and entry date to group entries by a user selected date
     series = models.ManyToManyField(Series,  blank = True, related_name='entries')
 
