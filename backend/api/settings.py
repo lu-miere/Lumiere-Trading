@@ -9,6 +9,10 @@ env = environ.Env()
 if os.path.exists(BASE_DIR.parent / '.env'):
     environ.Env.read_env(env_file=str(BASE_DIR.parent / '.env'))
 
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
+
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 

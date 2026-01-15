@@ -11,6 +11,7 @@ RUN apt-get update && \
     build-essential \
     libpq-dev \
     gcc \
+    gettext \
     libpq5 && \
     pip install poetry && \
     rm -rf /var/lib/apt/lists/*

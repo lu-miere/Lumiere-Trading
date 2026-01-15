@@ -19,10 +19,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: lumiere_api
+    working_dir: /app
     ports: ["8000:8000"]
     env_file: ./.env
     volumes:
       - ./backend:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=api.settings
     depends_on:
       db:
         condition: service_healthy
@@ -63,7 +66,8 @@ services:
     env_file: ./.env
     volumes:
       - ./backend:/app
-    entrypoint: poetry run python3 manage.py
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["poetry run python3 manage.py"]
     depends_on:
       db:
         condition: service_healthy

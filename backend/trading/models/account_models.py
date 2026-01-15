@@ -1,13 +1,12 @@
 from django.db import models
 from django.conf import settings
 from ..mixins import AccountTimeMixin, TimeMixin
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
+
 
 User = settings.AUTH_USER_MODEL
 
 
-class TradingAccount(AccountTimeMixin, models.Model):
+class TradingAccount(AccountTimeMixin, TimeMixin, models.Model):
     """Model for user trading 
     Data here is synthesized to display metrics on dashboard in AccountMetrics"""
 
@@ -30,7 +29,7 @@ class TradingAccount(AccountTimeMixin, models.Model):
         db_table = 'trading_account'
 
 
-class AccountMetrics(AccountTimeMixin, models.Model):
+class AccountMetrics(AccountTimeMixin,TimeMixin, models.Model):
     """the logic behind this model is that everytime a request is sent to the DB regarding a trade whether entry, modification or deletion
     this model should track the aggregate performance of the account
 
@@ -74,25 +73,4 @@ class AccountMetrics(AccountTimeMixin, models.Model):
         verbose_name = 'Account Metric'
         verbose_name_plural = 'Account Metrics'
    
-
-class SharedAccess(TimeMixin, models.Model):
-    
-    class ROLES(models.TextChoices):
-        VIEWER = 'VIEWER', 'View-only'
-        COMMENTER = 'COMMENTER', 'Can comment but not edit'
-        EDITOR = 'EDITOR', 'Can edit content'
-        ADMIN = 'ADMIN', 'Full control including resharing'
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='granted_access')
-    role = models.CharField(max_length=15, choices=ROLES.choices, default = ROLES.VIEWER)
-
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    content_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'content_id')
-
-    granted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='permissions_given')
-
-    class Meta:
-        unique_together = ('user', 'content_type', 'content_id')
-        verbose_name = 'Shared Access'
 
